@@ -1,13 +1,8 @@
-var http = require('http');
-var express = require('express');
 var serialport = require('serialport');
-
+var express = require('express');
 app = express();
-//start a new server
-var server = http.createServer(app).listen(3000);
-
-var io = require('socket.io').listen(server);
-
+var http = require('http').Server(app);
+var io = require('socket.io')(http);
 //connect to the serial port with the heart monitor
 var portName = 'COM3';
 var sp = new serialport.SerialPort(portName, {
@@ -19,12 +14,23 @@ var sp = new serialport.SerialPort(portName, {
     parser: serialport.parsers.readline("\r\n")
 });
 
-sp.on('data', function(input) {
+app.get('/', function(req, res){
+  res.sendFile(__dirname + '/public/graph.html');
+});
+io.on('connection', function(socket){
+	console.log("connected");
+	
+	sp.on('data', function(input) {
 	//send over socket
-	console.log(input);
+	//console.log(input);
+	io.emit('heart rate', input);
+});
 });
 
-app.get('/', function(req, res){
-  res.sendfile(__dirname + '/public/graph.html');
+
+
+
+http.listen(3000, function(){
+  console.log('listening on *:3000');
 });
 
